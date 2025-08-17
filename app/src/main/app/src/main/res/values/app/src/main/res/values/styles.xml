@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Usamos un tema básico de AppCompat para evitar dependencias raras -->
+    <style name="Theme.UniReader" parent="Theme.AppCompat.Light.NoActionBar">
+        <!-- Puedes ajustar colores si quieres -->
+        <item name="colorPrimary">@color/colorPrimary</item>
+        <item name="colorAccent">@color/colorAccent</item>
+        <item name="android:statusBarColor">@color/colorPrimaryDark</item>
+    </style>
+</resources>
