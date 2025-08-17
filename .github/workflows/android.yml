@@ -19,8 +19,8 @@ jobs:
           distribution: temurin
           java-version: 17
 
-      # Instalar SDK de Android (cmdline-tools) y paquetes base
-      - name: Install Android SDK (cmdline-tools + packages)
+      # 1) Descargar e instalar cmdline-tools
+      - name: Download cmdline-tools
         env:
           ANDROID_SDK_ROOT: ${{ github.workspace }}/android-sdk
           ANDROID_HOME: ${{ github.workspace }}/android-sdk
@@ -31,16 +31,22 @@ jobs:
           unzip -q cmdtools.zip -d "$ANDROID_SDK_ROOT/cmdline-tools"
           mv "$ANDROID_SDK_ROOT/cmdline-tools/cmdline-tools" "$ANDROID_SDK_ROOT/cmdline-tools/latest"
           rm -f cmdtools.zip
-
-          # Añadir binarios al PATH del runner
+          # Estas rutas estarán disponibles en LOS SIGUIENTES PASOS
           echo "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin" >> "$GITHUB_PATH"
           echo "$ANDROID_SDK_ROOT/platform-tools" >> "$GITHUB_PATH"
           echo "$ANDROID_SDK_ROOT/build-tools/34.0.0" >> "$GITHUB_PATH"
 
+      # 2) Aceptar licencias e instalar paquetes (ahora sí existe sdkmanager en el PATH)
+      - name: Accept licenses & install SDK packages
+        env:
+          ANDROID_SDK_ROOT: ${{ github.workspace }}/android-sdk
+          ANDROID_HOME: ${{ github.workspace }}/android-sdk
+        run: |
+          set -eux
           yes | sdkmanager --licenses
           sdkmanager --install "platform-tools" "platforms;android-34" "build-tools;34.0.0"
 
-      # Compilar en debug con Gradle 8.7 (aunque no tengas gradlew en el repo)
+      # 3) Compilar en debug con Gradle 8.7 (aunque no tengas gradlew)
       - name: Build (assembleDebug) with Gradle 8.7
         uses: gradle/gradle-build-action@v3
         with:
@@ -48,7 +54,7 @@ jobs:
           build-root-directory: .
           arguments: :app:assembleDebug --no-daemon -S
 
-      # Subir el APK como artefacto
+      # 4) Subir APK generado
       - name: Upload APKs
         uses: actions/upload-artifact@v4
         with:
