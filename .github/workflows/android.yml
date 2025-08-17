@@ -9,11 +9,6 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
-    env:
-      ANDROID_SDK_ROOT: ${{ github.workspace }}/android-sdk
-      ANDROID_HOME: ${{ github.workspace }}/android-sdk
-      PATH: ${{ github.workspace }}/android-sdk/cmdline-tools/latest/bin:${{ github.workspace }}/android-sdk/platform-tools:${{ github.workspace }}/android-sdk/build-tools/34.0.0:${{ env.PATH }}
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -24,7 +19,11 @@ jobs:
           distribution: temurin
           java-version: 17
 
-      - name: Install Android SDK (cmdline-tools + base packages)
+      # Instalar SDK de Android (cmdline-tools) y paquetes base
+      - name: Install Android SDK (cmdline-tools + packages)
+        env:
+          ANDROID_SDK_ROOT: ${{ github.workspace }}/android-sdk
+          ANDROID_HOME: ${{ github.workspace }}/android-sdk
         run: |
           set -eux
           mkdir -p "$ANDROID_SDK_ROOT/cmdline-tools"
@@ -32,9 +31,16 @@ jobs:
           unzip -q cmdtools.zip -d "$ANDROID_SDK_ROOT/cmdline-tools"
           mv "$ANDROID_SDK_ROOT/cmdline-tools/cmdline-tools" "$ANDROID_SDK_ROOT/cmdline-tools/latest"
           rm -f cmdtools.zip
-          yes | "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --licenses
-          "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --install "platform-tools" "platforms;android-34" "build-tools;34.0.0"
 
+          # Añadir binarios al PATH del runner
+          echo "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin" >> "$GITHUB_PATH"
+          echo "$ANDROID_SDK_ROOT/platform-tools" >> "$GITHUB_PATH"
+          echo "$ANDROID_SDK_ROOT/build-tools/34.0.0" >> "$GITHUB_PATH"
+
+          yes | sdkmanager --licenses
+          sdkmanager --install "platform-tools" "platforms;android-34" "build-tools;34.0.0"
+
+      # Compilar en debug con Gradle 8.7 (aunque no tengas gradlew en el repo)
       - name: Build (assembleDebug) with Gradle 8.7
         uses: gradle/gradle-build-action@v3
         with:
@@ -42,9 +48,10 @@ jobs:
           build-root-directory: .
           arguments: :app:assembleDebug --no-daemon -S
 
-      - name: Upload debug APK
+      # Subir el APK como artefacto
+      - name: Upload APKs
         uses: actions/upload-artifact@v4
         with:
-          name: app-debug-apk
+          name: app-apk-debug
           path: app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
