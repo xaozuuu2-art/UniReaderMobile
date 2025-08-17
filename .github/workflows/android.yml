@@ -1,4 +1,4 @@
-name: Android CI
+name: Android CI (debug)
 
 on:
   workflow_dispatch:
@@ -23,8 +23,8 @@ jobs:
           distribution: temurin
           java-version: 17
 
-      # Instala cmdline-tools y los paquetes base del SDK
-      - name: Install Android SDK (cmdline-tools + packages)
+      # Instala cmdline-tools y paquetes mínimos del SDK
+      - name: Install Android SDK (cmdline-tools + base packages)
         run: |
           set -eux
           mkdir -p "$ANDROID_SDK_ROOT/cmdline-tools"
@@ -32,29 +32,24 @@ jobs:
           unzip -q cmdtools.zip -d "$ANDROID_SDK_ROOT/cmdline-tools"
           mv "$ANDROID_SDK_ROOT/cmdline-tools/cmdline-tools" "$ANDROID_SDK_ROOT/cmdline-tools/latest"
           rm -f cmdtools.zip
-
-          # Usar sdkmanager con ruta absoluta dentro de ESTE paso
-          SDKM="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
-          yes | "$SDKM" --licenses
-          "$SDKM" --install "platform-tools" "platforms;android-34" "build-tools;34.0.0"
-
-          # Añadir a PATH para los SIGUIENTES pasos
           echo "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin" >> $GITHUB_PATH
           echo "$ANDROID_SDK_ROOT/platform-tools" >> $GITHUB_PATH
           echo "$ANDROID_SDK_ROOT/build-tools/34.0.0" >> $GITHUB_PATH
+          yes | sdkmanager --licenses
+          sdkmanager --install "platform-tools" "platforms;android-34" "build-tools;34.0.0"
 
-      # Compila con Gradle 8.7 aunque no tengas gradlew en el repo
-      - name: Build (assembleRelease) with Gradle 8.7
+      # Compila APK de prueba (DEBUG)
+      - name: Build (assembleDebug) with Gradle 8.7
         uses: gradle/gradle-build-action@v3
         with:
           gradle-version: 8.7
           build-root-directory: .
-          arguments: :app:assembleRelease --no-daemon -S
+          arguments: :app:assembleDebug --no-daemon -S
 
       # Sube el APK generado como artefacto
-      - name: Upload APKs
+      - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: app-apk
-          path: app/build/outputs/apk/release/*.apk
+          name: app-debug-apk
+          path: app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
