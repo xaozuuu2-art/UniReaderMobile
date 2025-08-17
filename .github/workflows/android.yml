@@ -23,13 +23,11 @@ jobs:
           distribution: temurin
           java-version: 17
 
-      # Configura caché de Gradle y utilidades modernas
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
         with:
           cache-read-only: false
 
-      # Instala el SDK de Android (cmdline-tools) y paquetes base
       - name: Install Android SDK (cmdline-tools + packages)
         shell: bash
         run: |
@@ -45,27 +43,7 @@ jobs:
           yes | sdkmanager --licenses
           sdkmanager --install "platform-tools" "platforms;android-34" "build-tools;34.0.0"
 
-      # Crea un Gradle Wrapper (8.7) dentro del repo para ejecutar ./gradlew
       - name: Generate Gradle Wrapper 8.7
         shell: bash
         run: |
           set -eux
-          # Usa el gradle del runner (lo provee setup-gradle) para generar el wrapper
-          gradle wrapper --gradle-version 8.7 --distribution-type all
-          chmod +x ./gradlew
-
-      # Compila en Debug (más rápido para probar en el móvil)
-      - name: Build Debug
-        shell: bash
-        run: |
-          set -eux
-          ./gradlew --version
-          ./gradlew :app:assembleDebug --no-daemon -S
-
-      # Sube el APK generado como artefacto
-      - name: Upload APKs
-        uses: actions/upload-artifact@v4
-        with:
-          name: app-debug-apk
-          path: app/build/outputs/apk/debug/*.apk
-          if-no-files-found: error
